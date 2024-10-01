@@ -1,14 +1,61 @@
-import openai
+import requests
+import json
+
+# sample run: >run -p C:\Users\sedki\PycharmProjects\MakeMeNote\src\sample-audio\sample.mp3 -c Make note for collage
 
 def make_notes(audio_path, custom_prompt):
-    openai.api_key = ""
 
     with open(audio_path, "rb") as audio_file:
-        transcription = openai.Audio.transcribe(
-            model="whisper-1",
-            file=audio_file
-        )
-    return transcription["text"]
+        url = "https://api.openai.com/v1/audio/transcriptions"
+        headers = {
+            "Authorization": f""
+        }
+
+        data = {
+            "model": "whisper-1"
+        }
+
+        files = {
+            "file": audio_file
+        }
+
+        response = requests.request("POST", url, headers=headers, data=data, files=files)
+
+        if response.status_code != 200:
+            raise Exception(f"An error occurred: {response.text}")
+
+    response_json = json.loads(response.text)
+    result = response_json["text"]
+
+    url_process = "https://api.openai.com/v1/chat/completions"
+    headers_process = {
+        "Authorization": f""
+    }
+
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {
+                "role": "system",
+                "content": "Chciałbym, abyś wyciągnął z niego najważniejsze punkty i zrobił ładną, czytelną notatkę, która będzie zrozumiała dla ucznia średniej klasy. Utwórz tytuł notatki a następnie napisz notatkę, na końcu wypisz słowa klucz. Pisz po Polsku. Unikaj ciągłego wypunktowywania.  "
+            },
+            {
+                "role": "user",
+                "content": result
+            }
+        ]
+    }
+
+    response_process = requests.request("POST", url_process, headers=headers_process, json=data)
+
+    if response_process.status_code != 200:
+        raise Exception(f"An error occurred: {response_process.text}")
+
+    response_json_process = json.loads(response_process.text)
+    result_process = response_json_process["choices"][0]["message"]["content"]
+
+
+    return result_process
 
 print("MakeMeNotes CLI")
 print("Type 'help' for a list of commands")
@@ -22,13 +69,25 @@ while True:
               "exit - Exit the program")
     elif command == "exit":
         break
-    elif command == "run":
-        print("Running maker")
-        audio_path = input("Enter the path to the audio file: ")
-        custom_prompt = input("Enter the custom prompt: ")
+    elif command.startswith("run"):
+        parts = command.split()
+
         try:
-            print(make_notes(audio_path, custom_prompt))
-        except Exception as e:
+            if "-p" in parts:
+                audio_path = parts[parts.index("-p") + 1]
+
+                if "-c" in parts:
+                    custom_prompt = parts[parts.index("-c") + 1]
+                else:
+                    custom_prompt = ""
+
+                print("Processing...\nResult:")
+
+                print(make_notes(audio_path, custom_prompt))
+            else:
+                print("Error: The -p (path) argument is required.")
+        except (ValueError, IndexError) as e:
             print(f"An error occurred: {e}")
+
     else:
-        print("Unknown command")
+        print("Unknown command. Type 'help' for available commands.")
