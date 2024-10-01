@@ -1,5 +1,10 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # sample run: >run -p C:\Users\sedki\PycharmProjects\MakeMeNote\src\sample-audio\sample.mp3 -c Make note for collage
 
@@ -8,7 +13,7 @@ def make_notes(audio_path, custom_prompt):
     with open(audio_path, "rb") as audio_file:
         url = "https://api.openai.com/v1/audio/transcriptions"
         headers = {
-            "Authorization": f""
+            "Authorization": os.getenv('API_KEY')
         }
 
         data = {
@@ -29,7 +34,7 @@ def make_notes(audio_path, custom_prompt):
 
     url_process = "https://api.openai.com/v1/chat/completions"
     headers_process = {
-        "Authorization": f""
+        "Authorization": os.getenv('API_KEY')
     }
 
     data = {
